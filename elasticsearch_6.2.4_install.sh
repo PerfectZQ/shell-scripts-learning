@@ -3,7 +3,6 @@
 # ===================================================================
 # ========= Created By ZhangQiang in 2018-5-23
 # ===================================================================
-# ========= 执行脚本之前，确定已经做过免密登陆
 # ========= 安装路径: /home/es
 # ========= 用户: es
 # ========= 密码: elasticsearch
@@ -15,7 +14,7 @@
 # ==========================================================================================================
 
 # root 用户密码
-root_passwd='nEu\$0ft'
+root_passwd='crm_86520800'
 # es 用户默认密码
 es_passwd='elasticsearch'
 
@@ -27,7 +26,7 @@ else
     es_tar_path=$1
 fi
 
-es_hosts="10.4.125.172 10.4.125.173 10.4.125.174 10.4.125.175"
+es_hosts="192.168.10.146 192.168.10.147 192.168.10.148 192.168.10.149"
 # es_hosts="10.4.125.172"
 
 # ==========================================================================================================
@@ -115,7 +114,10 @@ EOF
     if [ "$?" == "1" ]; then
         echo "为 $1 es 用户分配 sudo 权限..."
         # insert_line=`nl -b a /etc/sudoers | egrep  "^.*NOPASSWD: ALL" | awk '{print \$1}'`
-        ssh $1 "sed -in '`nl -b a /etc/sudoers | egrep  "^#.*NOPASSWD: ALL" | awk '{print \$1}'`a es  ALL=(ALL)  NOPASSWD: ALL' /etc/sudoers"
+        ssh es@$1 <<-EOF
+        line=\$(nl -b a /etc/sudoers | egrep  "#.*NOPASSWD: ALL" | awk '{print \$1}')
+        sed -in \$line'a es  ALL=(ALL)  NOPASSWD: ALL' /etc/sudoers
+EOF
         echo "$1 sudo 权限分配完成"
     else
         echo "$1 es 用户已经拥有 sudo 权限"
@@ -184,7 +186,11 @@ function modify_es_conf(){
     # line=`nl -b a $es_home/config/elasticsearch.yml | grep '#bootstrap\.memory_lock' | awk '{print $1}'`
     ssh es@$1 "grep -w 'bootstrap.system_call_filter' $es_home/config/elasticsearch.yml"
     if [ "$?" -eq 1 ]; then
-        ssh es@$1 "sed -i '`nl -b a $es_home/config/elasticsearch.yml | grep 'bootstrap\.memory_lock' | awk '{print $1}'`a bootstrap.system_call_filter: "$bootstrap_system_call_filter"' $es_home/config/elasticsearch.yml"
+        # 为了让 nl 命令查找的文件在远程机器上，需要将$()，进行转义，即使用 \$()，或者使用 \`\`
+        ssh es@$1 <<-EOF
+        line=\$(nl -b a $es_home/config/elasticsearch.yml | grep 'bootstrap\.memory_lock' | awk '{print \$1}')
+        sed -i \$line'a bootstrap.system_call_filter: "$bootstrap_system_call_filter"' $es_home/config/elasticsearch.yml
+EOF
     fi
 
     ssh es@$1 "sed -ir 's/#\(http\.port:\).*\$/\1 "$http_port"/g' "$es_home"/config/elasticsearch.yml"
@@ -248,6 +254,12 @@ function check_and_close_firewall(){
         echo "检测到 $1 防火墙是开启状态，关闭防火墙..."
         service iptables stop
     fi
+    systemctl status firewalld > /dev/null
+    if [ "\$?" == "0" ]; then
+        echo "检测到 $1 防火墙是开启状态，关闭防火墙..."
+        systemctl stop firewalld
+    fi
+
     echo "$1 防火墙已关闭"
 EOF
 }
