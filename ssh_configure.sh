@@ -26,7 +26,7 @@ function ssh_key_gen(){
     set timeout 60
     spawn ssh-keygen -t rsa -P ""
     expect {
-        "save the key*" { 
+        "*save the key*" { 
             send "\r"; exp_continue 
         }
         "Overwrite (y/n)?" { 
