@@ -2,11 +2,12 @@
 
 es_hosts="10.4.125.172 10.4.125.173 10.4.125.174 10.4.125.175"
 es_home=/home/es/elasticsearch-6.2.4/
+http_port=9200
 
 for server in $es_hosts
 do  
     ssh es@$server<<-EOF
-    ps aux | grep -i elasticsearch | grep -v grep | awk '{print $2}' | xargs kill -9
+    ps aux | grep -i elasticsearch | grep -v grep | awk '{print \$2}' | xargs kill -9
     ps aux | grep -v grep | grep -i elasticsearch
     if [ "\$?" == "1" ]; then
         echo "服务器:$server，没有找到正在运行的 es 实例 ..."
