@@ -3,22 +3,25 @@
 # ====================================================================================================================================================
 # ========= Created By zhang_qiang_neu in 2018-5-23
 # ====================================================================================================================================================
-# ========= 说明：用于一键部署 es 集群，目前在 centos6.8 和 centos 7.2上做过测试，其他系统可能需要调整下一脚本
-# ========= 依赖：依赖于 scp_to_hosts.sh 和 ssh_configure.sh 执行之前需要将其放在与本脚本相同的路径下
+# ========= 说明：用于一键部署 elasticsearch 集群，目前在 CentOS 6.8 和 CentOS 7.2上做过测试，其他系统可能需要调整下一脚本
+# ========= 依赖：依赖于 mscp 和 mssh 执行之前需要将其放在与本脚本相同的路径下
 # ========= 默认安装路径: /home/es
 # ========= 默认将创建用户: es
 # ========= 创建用户的密码: elasticsearch
 # ========= 使用方式：直接将 elasticsearch-6.2.4.tar.gz 压缩包放在当前节点上，修改 Options 中的 root_passwd、es_passwd 和 es_hosts 执行下面的启动脚本即可
-# ========= 启动脚本：sh elasticsearch_6.2.4_install.sh /root/elasticsearch-6.2.4.tar.gz
+# ========= 启动脚本：必须在 root 用户下执行 sh cluster_install /root/elasticsearch-6.2.4.tar.gz
 # ====================================================================================================================================================
 
 # ==========================================================================================================
 # =============== Options ====================== Options ===================== Options =====================
 # ==========================================================================================================
 
-# root 用户密码
-root_passwd='crm_86520800'
-# es 用户默认密码
+# 需要修改为要安装 elasticsearch 的节点
+es_hosts="192.168.10.146 192.168.10.147 192.168.10.148 192.168.10.149"
+
+# 需要修改为各节点 root 用户密码
+root_passwd='xxxxxx'
+# 要创建的 es 用户默认密码，可以不用修改
 es_passwd='elasticsearch'
 
 # 赋值号 = 左右不可以有空格！
@@ -28,9 +31,6 @@ if [ ${1:$(( ${#1}-1 )):${#1}} == "/" ]; then
 else
     es_tar_path=$1
 fi
-
-es_hosts="192.168.10.146 192.168.10.147 192.168.10.148 192.168.10.149"
-# es_hosts="10.4.125.172"
 
 # ==========================================================================================================
 # ====================================== ElasticSearch Properties ==========================================
@@ -285,7 +285,7 @@ workdir=$(cd `dirname $0`; pwd)
 check_and_install_elasticsearch
 
 # 配置 root 到 各节点root 用户的免密登陆
-sh $workdir/ssh_configure.sh -h "$es_hosts" -p "$root_passwd"
+sh $workdir/mssh -h "$es_hosts" -p "$root_passwd"
 
 if [ "$?" -eq 0 ]; then
     echo "配置 root 到 各节点 root 用户的免密登陆成功！"
@@ -305,7 +305,7 @@ done
 chown -R es:es /root/$es_name
 
 # 配置 root 到 es 用户的免密登陆
-sh $workdir/ssh_configure.sh -h "`echo $es_hosts | sed -r 's/([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)/es@\1/g'`" -p 'elasticsearch'
+sh $workdir/mssh -h "`echo $es_hosts | sed -r 's/([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)/es@\1/g'`" -p 'elasticsearch'
 
 if [ "$?" -eq 0 ]; then
     echo "配置 root 到 各节点 es 用户的免密登陆成功！"
@@ -317,7 +317,7 @@ fi
 
 # 将 es 发送到各个节点
 echo "将 es 发送到各个节点 ..."
-sh $workdir/scp_to_hosts.sh --source-files /root/$es_name --target-paths `echo $es_hosts | sed -r 's#([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)#es@\1:/home/es#g'` >/dev/null
+sh $workdir/mscp --source-files /root/$es_name --target-paths `echo $es_hosts | sed -r 's#([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)#es@\1:/home/es#g'` >/dev/null
 if [ "$?" -eq 0 ]; then
     echo "发送完毕 ..."
 else
