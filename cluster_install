@@ -25,7 +25,16 @@ root_passwd='xxxxxx'
 es_passwd='elasticsearch'
 
 # 赋值号 = 左右不可以有空格！
-# 获取字符串变量str的长度 ${#$str}
+# $A 等价 ${A}，${}用于做变量替换
+# example:
+# file=/dir1/dir2/dir3/my.file.txt
+# - shell 变量取子串
+#   - 提取最左边的5个字符/dir1: ${file:0:5}
+#   - 提取第5个字符及其右边的5个字符/dir2: ${file:5:5}
+# - shell 变量值的替换
+#   - 将第一个dir替换为path，/path1/dir2/dir3/my.file.txt: ${file/dir/path}
+#   - 将全部的dir替换为path，/path1/path2/path3/my.file.txt: ${file//dir/path}
+# - 获取字符串变量file的长度: ${#file}
 if [ ${1:$(( ${#1}-1 )):${#1}} == "/" ]; then
     es_tar_path=${1:0:$(( ${#1}-1 ))}
 else
